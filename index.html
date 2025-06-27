@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>HeyGen Streaming API LiveKit (V2)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+      
+      :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        --danger-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        --glass-bg: rgba(255, 255, 255, 0.1);
+        --glass-border: rgba(255, 255, 255, 0.2);
+        --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.1);
+        --shadow-medium: 0 12px 40px rgba(0, 0, 0, 0.15);
+      }
+
+      * {
+        font-family: 'Inter', sans-serif;
+      }
+
+      body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        min-height: 100vh;
+        background-attachment: fixed;
+      }
+
+      .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--glass-border);
+        box-shadow: var(--shadow-soft);
+      }
+
+      .glass-input {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+      }
+
+      .glass-input:focus {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.4);
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        transform: translateY(-1px);
+      }
+
+      .modern-btn {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+        box-shadow: var(--shadow-soft);
+      }
+
+      .modern-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-medium);
+      }
+
+      .modern-btn:active {
+        transform: translateY(0);
+      }
+
+      .modern-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s;
+      }
+
+      .modern-btn:hover::before {
+        left: 100%;
+      }
+
+      .btn-primary {
+        background: var(--primary-gradient);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .btn-success {
+        background: var(--success-gradient);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .btn-danger {
+        background: var(--danger-gradient);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .btn-secondary {
+        background: var(--secondary-gradient);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .status-container {
+        background: rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .video-container {
+        background: rgba(0, 0, 0, 0.2);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .video-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(45deg, rgba(255, 255, 255, 0.1) 0%, transparent 50%, rgba(255, 255, 255, 0.1) 100%);
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      .video-container:hover::before {
+        opacity: 1;
+      }
+
+      .floating-animation {
+        animation: float 6s ease-in-out infinite;
+      }
+
+      @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+      }
+
+      .pulse-animation {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+      }
+
+      .slide-in {
+        animation: slideIn 0.5s ease-out forwards;
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .form-group {
+        position: relative;
+        margin-bottom: 2rem;
+      }
+
+      .form-label {
+        position: absolute;
+        top: -12px;
+        left: 16px;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(240, 231, 255, 0.95));
+        padding: 4px 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #4c1d95;
+        border-radius: 8px;
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        z-index: 10;
+      }
+
+      .modern-input {
+        width: 100%;
+        padding: 16px 16px 12px 16px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 400;
+        color: white;
+        placeholder-color: rgba(255, 255, 255, 0.7);
+      }
+
+      .modern-input::placeholder {
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      .status-text {
+        color: rgba(255, 255, 255, 0.9);
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .title-gradient {
+        background: linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .icon-button {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+
+      .loading-spinner {
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top: 2px solid white;
+        width: 16px;
+        height: 16px;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
+  </head>
+
+  <body class="min-h-screen p-4 md:p-8">
+    <div class="max-w-4xl mx-auto">
+      <!-- Header -->
+      <div class="text-center mb-8 slide-in">
+        <h1 class="text-4xl md:text-5xl font-bold title-gradient mb-4 floating-animation">
+          HeyGen Streaming API
+        </h1>
+        <p class="text-white/80 text-lg font-medium">
+          LiveKit V2 Integration
+        </p>
+      </div>
+
+      <!-- Main Container -->
+      <div class="glass-card rounded-3xl p-6 md:p-8 slide-in">
+        <!-- Configuration Section -->
+        <div class="mb-8">
+          <h2 class="text-xl font-semibold text-white mb-6 flex items-center">
+            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+            Configuration
+          </h2>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            <div class="form-group">
+              <label class="form-label">Avatar ID</label>
+              <input
+                id="avatarID"
+                type="text"
+                placeholder="Enter Avatar ID"
+                value="Wayne_20240711"
+                class="modern-input glass-input"
+              />
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Voice ID</label>
+              <input
+                id="voiceID"
+                type="text"
+                placeholder="Enter Voice ID"
+                class="modern-input glass-input"
+              />
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">API Key</label>
+              <input
+                id="apiKeyInput"
+                type="password"
+                placeholder="HeyGen API Key"
+                class="modern-input glass-input"
+              />
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-3">
+            <button
+              id="startBtn"
+              class="modern-btn btn-success text-white px-6 py-3 rounded-xl font-medium flex items-center space-x-2"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.01M15 10h1.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <span>Start Session</span>
+            </button>
+            
+            <button
+              id="closeBtn"
+              class="modern-btn btn-danger text-white px-6 py-3 rounded-xl font-medium flex items-center space-x-2"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+              <span>Close Session</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Interaction Section -->
+        <div class="mb-8">
+          <h2 class="text-xl font-semibold text-white mb-6 flex items-center">
+            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+            </svg>
+            Interaction
+          </h2>
+          
+          <div class="flex flex-col md:flex-row gap-4">
+            <div class="form-group flex-1">
+              <label class="form-label">Message</label>
+              <input
+                id="taskInput"
+                type="text"
+                placeholder="Enter text for avatar to speak"
+                class="modern-input glass-input"
+              />
+            </div>
+            
+            <div class="flex gap-3">
+              <button
+                id="talkBtn"
+                class="modern-btn btn-primary text-white px-6 py-3 rounded-xl font-medium flex items-center space-x-2"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                </svg>
+                <span>Talk (LLM)</span>
+              </button>
+              
+              <button
+                id="repeatBtn"
+                class="modern-btn btn-secondary text-white px-6 py-3 rounded-xl font-medium flex items-center space-x-2"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                <span>Repeat</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Video Section -->
+        <div class="mb-8">
+          <h2 class="text-xl font-semibold text-white mb-6 flex items-center">
+            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+            </svg>
+            Video Stream
+          </h2>
+          <div class="video-container rounded-2xl">
+            <video
+              id="mediaElement"
+              class="w-full max-h-[400px] rounded-2xl"
+              autoplay
+            ></video>
+          </div>
+        </div>
+
+        <!-- Status Section -->
+        <div>
+          <h2 class="text-xl font-semibold text-white mb-6 flex items-center">
+            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+            Status & Logs
+          </h2>
+          <div
+            id="status"
+            class="status-container rounded-2xl p-4 h-32 overflow-y-auto status-text"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Add loading animation to buttons
+      function setButtonLoading(button, loading) {
+        const span = button.querySelector('span');
+        const svg = button.querySelector('svg');
+        
+        if (loading) {
+          if (span) span.style.display = 'none';
+          if (svg) svg.style.display = 'none';
+          
+          const spinner = document.createElement('div');
+          spinner.className = 'loading-spinner';
+          spinner.setAttribute('data-spinner', 'true');
+          button.appendChild(spinner);
+          button.disabled = true;
+        } else {
+          const spinner = button.querySelector('[data-spinner="true"]');
+          if (spinner) spinner.remove();
+          if (span) span.style.display = 'inline';
+          if (svg) svg.style.display = 'inline';
+          button.disabled = false;
+        }
+      }
+
+      // Configuration
+      const API_CONFIG = {
+        serverUrl: "https://api.heygen.com",
+      };
+
+      // Global variables
+      let sessionInfo = null;
+      let room = null;
+      let mediaStream = null;
+      let webSocket = null;
+      let sessionToken = null;
+
+      // DOM Elements
+      const statusElement = document.getElementById("status");
+      const mediaElement = document.getElementById("mediaElement");
+      const avatarID = document.getElementById("avatarID");
+      const voiceID = document.getElementById("voiceID");
+      const apiKeyInput = document.getElementById("apiKeyInput");
+      const taskInput = document.getElementById("taskInput");
+
+      // Helper function to update status
+      function updateStatus(message) {
+        const timestamp = new Date().toLocaleTimeString();
+        statusElement.innerHTML += `<span style="color: rgba(255, 255, 255, 0.6);">[${timestamp}]</span> <span style="color: rgba(255, 255, 255, 0.9);">${message}</span><br>`;
+        statusElement.scrollTop = statusElement.scrollHeight;
+      }
+
+      // Get session token
+      async function getSessionToken() {
+        const apiKey = apiKeyInput.value;
+        if (!apiKey) {
+          updateStatus("❌ Error: HeyGen API Key is missing.");
+          return;
+        }
+
+        const response = await fetch(
+          `${API_CONFIG.serverUrl}/v1/streaming.create_token`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Api-Key": apiKey,
+            },
+          }
+        );
+
+        const data = await response.json();
+        if (data.error) {
+          updateStatus(`❌ Error obtaining session token: ${data.error.message}`);
+          return;
+        }
+        sessionToken = data.data.token;
+        updateStatus("✅ Session token obtained");
+      }
+
+      // Connect WebSocket
+      async function connectWebSocket(sessionId) {
+        const params = new URLSearchParams({
+          session_id: sessionId,
+          session_token: sessionToken,
+          silence_response: false,
+          opening_text: "Hello, how can I help you?",
+          stt_language: "en",
+        });
+
+        const wsUrl = `wss://${
+          new URL(API_CONFIG.serverUrl).hostname
+        }/v1/ws/streaming.chat?${params}`;
+
+        webSocket = new WebSocket(wsUrl);
+
+        // Handle WebSocket events
+        webSocket.addEventListener("message", (event) => {
+          const eventData = JSON.parse(event.data);
+          console.log("Raw WebSocket event:", eventData);
+        });
+      }
+
+      // Create new session
+      async function createNewSession() {
+        if (!sessionToken) {
+          await getSessionToken();
+        }
+
+        if (!sessionToken) {
+          // If session token is still null after attempting to get it, stop.
+          return;
+        }
+
+        const response = await fetch(
+          `${API_CONFIG.serverUrl}/v1/streaming.new`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${sessionToken}`,
+            },
+            body: JSON.stringify({
+              quality: "high",
+              avatar_name: avatarID.value,
+              voice: {
+                voice_id: voiceID.value,
+                rate: 1.0,
+              },
+              version: "v2",
+              video_encoding: "H264",
+            }),
+          }
+        );
+
+        const data = await response.json();
+        if (data.error) {
+          updateStatus(`❌ Error creating new session: ${data.error.message}`);
+          return;
+        }
+        sessionInfo = data.data;
+
+        // Create LiveKit Room
+        room = new LivekitClient.Room({
+          adaptiveStream: true,
+          dynacast: true,
+          videoCaptureDefaults: {
+            resolution: LivekitClient.VideoPresets.h720.resolution,
+          },
+        });
+
+        // Handle room events
+        room.on(LivekitClient.RoomEvent.DataReceived, (message) => {
+          const data = new TextDecoder().decode(message);
+          console.log("Room message:", JSON.parse(data));
+        });
+
+        // Handle media streams
+        mediaStream = new MediaStream();
+        room.on(LivekitClient.RoomEvent.TrackSubscribed, (track) => {
+          if (track.kind === "video" || track.kind === "audio") {
+            mediaStream.addTrack(track.mediaStreamTrack);
+            if (
+              mediaStream.getVideoTracks().length > 0 &&
+              mediaStream.getAudioTracks().length > 0
+            ) {
+              mediaElement.srcObject = mediaStream;
+              updateStatus("🎥 Media stream ready");
+            }
+          }
+        });
+
+        // Handle media stream removal
+        room.on(LivekitClient.RoomEvent.TrackUnsubscribed, (track) => {
+          const mediaTrack = track.mediaStreamTrack;
+          if (mediaTrack) {
+            mediaStream.removeTrack(mediaTrack);
+          }
+        });
+
+        // Handle room connection state changes
+        room.on(LivekitClient.RoomEvent.Disconnected, (reason) => {
+          updateStatus(`🔌 Room disconnected: ${reason}`);
+        });
+
+        await room.prepareConnection(sessionInfo.url, sessionInfo.access_token);
+        updateStatus("🔗 Connection prepared");
+
+        // Connect WebSocket after room preparation
+        await connectWebSocket(sessionInfo.session_id);
+
+        updateStatus("✅ Session created successfully");
+      }
+
+      // Start streaming session
+      async function startStreamingSession() {
+        const startResponse = await fetch(
+          `${API_CONFIG.serverUrl}/v1/streaming.start`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${sessionToken}`,
+            },
+            body: JSON.stringify({
+              session_id: sessionInfo.session_id,
+            }),
+          }
+        );
+
+        // Connect to LiveKit room
+        await room.connect(sessionInfo.url, sessionInfo.access_token);
+        updateStatus("🌐 Connected to room");
+
+        document.querySelector("#startBtn").disabled = true;
+        updateStatus("🚀 Streaming started successfully");
+      }
+
+      // Send text to avatar
+      async function sendText(text, taskType = "talk") {
+        if (!sessionInfo) {
+          updateStatus("❌ No active session");
+          return;
+        }
+
+        const response = await fetch(
+          `${API_CONFIG.serverUrl}/v1/streaming.task`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${sessionToken}`,
+            },
+            body: JSON.stringify({
+              session_id: sessionInfo.session_id,
+              text: text,
+              task_type: taskType,
+            }),
+          }
+        );
+
+        updateStatus(`💬 Sent text (${taskType}): ${text}`);
+      }
+
+      // Close session
+      async function closeSession() {
+        if (!sessionInfo) {
+          updateStatus("❌ No active session");
+          return;
+        }
+
+        const response = await fetch(
+          `${API_CONFIG.serverUrl}/v1/streaming.stop`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${sessionToken}`,
+            },
+            body: JSON.stringify({
+              session_id: sessionInfo.session_id,
+            }),
+          }
+        );
+
+        // Close WebSocket
+        if (webSocket) {
+          webSocket.close();
+        }
+        // Disconnect from LiveKit room
+        if (room) {
+          room.disconnect();
+        }
+
+        mediaElement.srcObject = null;
+        sessionInfo = null;
+        room = null;
+        mediaStream = null;
+        sessionToken = null;
+        document.querySelector("#startBtn").disabled = false;
+
+        updateStatus("🔴 Session closed");
+      }
+
+      // Event Listeners
+      document
+        .querySelector("#startBtn")
+        .addEventListener("click", async (e) => {
+          setButtonLoading(e.target, true);
+          try {
+            await createNewSession();
+            await startStreamingSession();
+          } finally {
+            setButtonLoading(e.target, false);
+          }
+        });
+      
+      document
+        .querySelector("#closeBtn")
+        .addEventListener("click", async (e) => {
+          setButtonLoading(e.target, true);
+          try {
+            await closeSession();
+          } finally {
+            setButtonLoading(e.target, false);
+          }
+        });
+      
+      document.querySelector("#talkBtn").addEventListener("click", async (e) => {
+        const text = taskInput.value.trim();
+        if (text) {
+          setButtonLoading(e.target, true);
+          try {
+            await sendText(text, "talk");
+            taskInput.value = "";
+          } finally {
+            setButtonLoading(e.target, false);
+          }
+        }
+      });
+      
+      document.querySelector("#repeatBtn").addEventListener("click", async (e) => {
+        const text = taskInput.value.trim();
+        if (text) {
+          setButtonLoading(e.target, true);
+          try {
+            await sendText(text, "repeat");
+            taskInput.value = "";
+          } finally {
+            setButtonLoading(e.target, false);
+          }
+        }
+      });
+
+      // Add Enter key support for task input
+      taskInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          document.querySelector("#talkBtn").click();
+        }
+      });
+
+      // Initialize with welcome message
+      updateStatus("🌟 Welcome to HeyGen Streaming API LiveKit V2");
+      updateStatus("📝 Please enter your configuration details and click 'Start Session' to begin");
+    </script>
+  </body>
+</html>
